@@ -1,0 +1,8 @@
+{
+  "name": "LunchRun: Workplace Food Coordinator",
+  "description": "A collaborative app for workplace food runs. Runners can announce departure, set capacity, and notify colleagues upon arrival.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

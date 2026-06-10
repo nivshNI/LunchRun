@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-lunchrunworkplac-3757a5a5-a29e-426c-91e7-1fd2639e037b",
+      "rules": "firestore.rules"
+    }
+  ]
+}

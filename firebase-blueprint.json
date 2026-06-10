@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "name"]
+    },
+    "FoodRun": {
+      "title": "Food Run",
+      "description": "An active or completed food run.",
+      "type": "object",
+      "properties": {
+        "runnerName": { "type": "string" },
+        "runnerEmail": { "type": "string" },
+        "runnerId": { "type": "string" },
+        "destination": { "type": "string" },
+        "departureTime": { "type": "number" },
+        "minutesUntilDeparture": { "type": "number" },
+        "maxOrders": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "departed", "arrived", "cancelled"] },
+        "orderCount": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "arrivalLocation": { "type": "string" },
+        "arrivalTime": { "type": "number" }
+      },
+      "required": ["runnerName", "runnerEmail", "runnerId", "destination", "departureTime", "status", "orderCount", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "An individual food order within a run.",
+      "type": "object",
+      "properties": {
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userId": { "type": "string" },
+        "itemDescription": { "type": "string" },
+        "floor": { "type": "string" },
+        "cibusCode": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["userName", "userEmail", "userId", "itemDescription", "floor", "timestamp"]
+    },
+    "WaitingOrder": {
+      "title": "Waiting Order",
+      "description": "A request for food on the waitlist.",
+      "type": "object",
+      "properties": {
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userId": { "type": "string" },
+        "destination": { "type": "string" },
+        "itemDescription": { "type": "string" },
+        "floor": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["userName", "userEmail", "userId", "destination", "itemDescription", "floor", "timestamp"]
+    }
+  },
+  "firestore": {
+    "domains/{domainId}/users/{userId}": {
+      "schema": "User",
+      "description": "Users within a specific office domain."
+    },
+    "domains/{domainId}/runs/{runId}": {
+      "schema": "FoodRun",
+      "description": "Active food runs in the domain."
+    },
+    "domains/{domainId}/runs/{runId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Orders associated with a specific food run."
+    },
+    "domains/{domainId}/waitlist/{waitId}": {
+      "schema": "WaitingOrder",
+      "description": "Waitlist items in the domain."
+    }
+  }
+}

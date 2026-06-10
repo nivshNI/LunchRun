@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Core structure for LunchRun
+    match /domains/{domainId} {
+      // Helper function to check if user belongs to the current domain
+      function isFromDomain() {
+        return request.auth != null 
+          && (domainId == 'public' || (request.auth.token.email != null && request.auth.token.email.lower().split('@')[1] == domainId));
+      }
+
+      // Allow users of this domain to view the domain document itself
+      allow read, write: if isFromDomain();
+      
+      // Users collection
+      match /users/{userId} {
+        allow read: if isFromDomain();
+        allow write: if isFromDomain() && request.auth.uid == userId;
+      }
+      
+      // Runs collection
+      match /runs/{runId} {
+        allow read, write: if isFromDomain();
+        
+        // Orders subcollection
+        match /orders/{orderId} {
+          allow read, write: if isFromDomain();
+        }
+      }
+      
+      // Waitlist collection
+      match /waitlist/{waitId} {
+        allow read, write: if isFromDomain();
+      }
+    }
+  }
+}
