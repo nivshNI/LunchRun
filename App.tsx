@@ -333,10 +333,10 @@ const App: React.FC = () => {
           </div>
 
           {lastError && (
-            <div className="absolute top-20 left-0 right-0 p-4 bg-red-50 border border-red-100 rounded-2xl text-[10px] font-bold text-red-500 uppercase tracking-wider animate-in fade-in slide-in-from-top-2 z-40 text-center shadow-xl shadow-red-50/50">
-              <i className="fas fa-exclamation-triangle mr-2"></i>
-              {lastError}
-              <button onClick={() => setLastError(null)} className="ml-4 opacity-50 hover:opacity-100">✕</button>
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-lg p-4 bg-red-600 text-white rounded-2xl text-xs font-bold z-[100] text-center shadow-2xl flex items-center justify-between gap-4">
+              <i className="fas fa-exclamation-triangle shrink-0"></i>
+              <span className="flex-1">{lastError}</span>
+              <button onClick={() => setLastError(null)} className="shrink-0 opacity-70 hover:opacity-100">✕</button>
             </div>
           )}
 
@@ -634,7 +634,7 @@ const EmptyState: React.FC<{ icon: string, title: string, subtitle: string }> = 
 );
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
     <div className="bg-white border border-white rounded-[2.5rem] w-full max-w-md shadow-[0_30px_70px_rgba(0,0,0,0.1)] overflow-hidden animate-in fade-in zoom-in-95 duration-300">
       <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
         <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">{title}</h3>
