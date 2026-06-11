@@ -127,7 +127,9 @@ const App: React.FC = () => {
   const handleStartRun = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+    if (inputs.max < 1) { setLastError('Max orders must be at least 1'); return; }
+    if (inputs.time < 1) { setLastError('Departure time must be at least 1 minute'); return; }
+
     try {
       const newRun = {
         runnerName: user.displayName || user.email!.split('@')[0],
@@ -259,11 +261,17 @@ const App: React.FC = () => {
 
   const handleDepart = async (runId: string) => {
     try {
-      await updateDoc(doc(db, 'domains', domainId, 'runs', runId), {
-        status: 'departed'
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `domains/${domainId}/runs/${runId}`);
+      await updateDoc(doc(db, 'domains', domainId, 'runs', runId), { status: 'departed' });
+    } catch (error: any) {
+      setLastError(`Failed to depart: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleCancel = async (runId: string) => {
+    try {
+      await updateDoc(doc(db, 'domains', domainId, 'runs', runId), { status: 'cancelled' });
+    } catch (error: any) {
+      setLastError(`Failed to cancel: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -271,7 +279,7 @@ const App: React.FC = () => {
     e.preventDefault();
     const runId = modals.arrive;
     if (!runId) return;
-    
+
     try {
       await updateDoc(doc(db, 'domains', domainId, 'runs', runId), {
         status: 'arrived',
@@ -280,8 +288,8 @@ const App: React.FC = () => {
       });
       setModals({ ...modals, arrive: null });
       setInputs({ ...inputs, loc: '' });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `domains/${domainId}/runs/${runId}`);
+    } catch (error: any) {
+      setLastError(`Failed to mark arrival: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -387,16 +395,17 @@ const App: React.FC = () => {
               <EmptyState icon="fa-utensils" title="The office is quiet" subtitle="No one is out for food yet. Why not be the first?" />
             ) : (
               runs.map(run => (
-                <RunCard 
-                  key={run.id} 
-                  run={run} 
+                <RunCard
+                  key={run.id}
+                  run={run}
                   domainId={domainId}
-                  userEmail={user.email!} 
-                  onJoin={() => setModals({ ...modals, join: run.id })} 
-                  onArrive={() => setModals({ ...modals, arrive: run.id })} 
-                  onDepart={() => handleDepart(run.id)} 
-                  waitlist={waitlist} 
-                  onPromote={(waitId) => promoteFromWaitlist(run.id, waitId)} 
+                  userEmail={user.email!}
+                  onJoin={() => setModals({ ...modals, join: run.id })}
+                  onArrive={() => setModals({ ...modals, arrive: run.id })}
+                  onDepart={() => handleDepart(run.id)}
+                  onCancel={() => handleCancel(run.id)}
+                  waitlist={waitlist}
+                  onPromote={(waitId) => promoteFromWaitlist(run.id, waitId)}
                 />
               ))
             )
@@ -475,9 +484,10 @@ const App: React.FC = () => {
   );
 };
 
-const RunCard: React.FC<{ run: FoodRun, domainId: string, userEmail: string, onJoin: () => void, onArrive: () => void, onDepart: () => void, waitlist: WaitingOrder[], onPromote: (id: string) => void }> = ({ run, domainId, userEmail, onJoin, onArrive, onDepart, waitlist, onPromote }) => {
+const RunCard: React.FC<{ run: FoodRun, domainId: string, userEmail: string, onJoin: () => void, onArrive: () => void, onDepart: () => void, onCancel: () => void, waitlist: WaitingOrder[], onPromote: (id: string) => void }> = ({ run, domainId, userEmail, onJoin, onArrive, onDepart, onCancel, waitlist, onPromote }) => {
   const [orders, setOrders] = useState<Order[]>([]);
-  
+  const [secondsLeft, setSecondsLeft] = useState(() => Math.max(0, Math.round((run.departureTime - Date.now()) / 1000)));
+
   useEffect(() => {
     const q = query(collection(db, 'domains', domainId, 'runs', run.id, 'orders'), orderBy('timestamp', 'asc'));
     return onSnapshot(q, (snapshot) => {
@@ -486,6 +496,22 @@ const RunCard: React.FC<{ run: FoodRun, domainId: string, userEmail: string, onJ
       setOrders(ordersData);
     });
   }, [run.id, domainId]);
+
+  useEffect(() => {
+    if (run.status !== 'active') return;
+    const interval = setInterval(() => {
+      const s = Math.max(0, Math.round((run.departureTime - Date.now()) / 1000));
+      setSecondsLeft(s);
+      if (s === 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [run.departureTime, run.status]);
+
+  const formatCountdown = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
 
   const isOwner = userEmail.toLowerCase() === run.runnerEmail.toLowerCase();
   const hasJoined = orders.some(o => o.userEmail.toLowerCase() === userEmail.toLowerCase());
@@ -500,6 +526,11 @@ const RunCard: React.FC<{ run: FoodRun, domainId: string, userEmail: string, onJ
             <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${run.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600 animate-pulse'}`}>
               {run.status === 'active' ? 'ENROLLING' : 'ON THE WAY'}
             </span>
+            {run.status === 'active' && (
+              <span className="text-[10px] font-black px-3 py-1 rounded-full bg-amber-50 text-amber-500 tabular-nums">
+                {formatCountdown(secondsLeft)}
+              </span>
+            )}
             <span className="text-slate-300">•</span>
             <div className="flex items-center gap-2">
                <div className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[9px] font-bold text-slate-500">{run.runnerName.charAt(0)}</div>
@@ -553,7 +584,10 @@ const RunCard: React.FC<{ run: FoodRun, domainId: string, userEmail: string, onJ
           <div className="w-full space-y-3">
             {isOwner ? (
               run.status === 'active' ? (
-                <Button onClick={onDepart} className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100">Go Now</Button>
+                <>
+                  <Button onClick={onDepart} className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100">Go Now</Button>
+                  <Button onClick={onCancel} className="w-full h-10 bg-red-50 text-red-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-100 transition-colors">Cancel</Button>
+                </>
               ) : (
                 <Button onClick={onArrive} className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100">Arrived</Button>
               )

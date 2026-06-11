@@ -7,10 +7,10 @@ export enum UserRole {
 
 export interface Order {
   id: string;
+  userId: string;
   userName: string;
   userEmail: string;
   itemDescription: string;
-  cibusCode: string;
   floor: string;
   timestamp: number;
 }
